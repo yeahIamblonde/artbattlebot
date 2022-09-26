@@ -1,0 +1,28 @@
+{
+  "name": "books4satsbot",
+  "version": "1.0.0",
+  "description": "Telegram books4sats bot",
+  "main": "app.js",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "bolt11": "^1.2.7",
+    "dotenv": "^8.2.0",
+    "invoices": "^1.1.6",
+    "lightning-charge-client": "^0.1.12",
+    "mongoose": "^5.11.15",
+    "telegraf": "^3.38.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yeahIamblonde/books4satsbot.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yeahIamblonde/books4satsbot/issues"
+  },
+  "homepage": "https://github.com/yeahIamblonde/books4satsbot#readme"
+}
