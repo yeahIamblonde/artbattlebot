@@ -8,9 +8,16 @@ const charge  = require('lightning-charge-client')('https://pay.elephantthink.co
 
 const sellWizard = new WizardScene(
     'sellScene',
-    (ctx) => {
-      ctx.reply('Please send me the first image for the Art Battle.')
-      return ctx.wizard.next();
+    async (ctx) => {
+      // check if battle already exists 
+      if (await Book.findOne({votesAvailable: { $gt: 0 }})) {
+        console.log(Book)
+        ctx.reply('There is already an active battle. Unable to create a new Battle. Please wait until the active battle has finished.')
+        ctx.scene.leave()
+      } else {
+        ctx.reply('Please send me the first image for the Art Battle.')
+        return ctx.wizard.next();
+      }
     },
     async (ctx) => {
       if (ctx.message.photo) {

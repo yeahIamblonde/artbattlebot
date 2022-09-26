@@ -92,23 +92,15 @@ bot.start(async(ctx) => {
   await ctx.setMyCommands([
     {
       command: '/browse',
-      description: 'Browse the latest books'
+      description: 'Browse the active Art Battles'
     },
     {
-      command: '/search',
-      description: 'Search for books'
-    },
-    {
-      command: '/request',
-      description: 'Request a book'
-    },
-    {
-      command: '/sell',
-      description: 'Sell a book'
+      command: '/create',
+      description: 'Create a new Art Battle'
     }
   ])
   try {
-    ctx.reply('Welcome, this bot allows you to buy and sell books for sats.\n\nThis bot is very much work in progress. At the moment only the /browse, /search and /sell commands are implemented.')
+    ctx.reply('Welcome, this bot allows you to particpate in Artbattles by voting for one of the paintings in the battle.\n\nIf you vote for the winning painting you will receive 1 ArtCod3 token.\n\nCheck out the current battle /browse')
   } catch (error) {
       console.log('error in sendmessage')
   }
@@ -126,20 +118,11 @@ bot.command('browse', async (ctx) => {
   ctx.scene.enter('browseScene')
 })
 
-bot.command('sell', async (ctx) => {
-  console.log(`${ctx.from.username}: /sell`)
+bot.command('create', async (ctx) => {
+  console.log(`${ctx.from.username}: /create`)
   ctx.scene.enter('sellScene')
 })
 
-bot.command('request', async (ctx) => {
-  console.log(`${ctx.from.username}: /request`)
-  ctx.scene.enter('requestScene')
-})
-
-bot.command('search', async (ctx) => {
-  console.log(`${ctx.from.username}: /search`)
-  ctx.scene.enter('searchScene')
-})
 
 bot.command('message', async (ctx) => {
   console.log(`${ctx.from.username}: /message`)

@@ -90,9 +90,8 @@ browseWizard.action('Vote', async (ctx) => {
     // no more votes available, send result of the battle to all users
     const cursor = User.find().cursor();
     await cursor.eachAsync(async function(doc) {
-      console.log(doc);
+      ctx.telegram.sendMessage(doc.id,`The battle has ended.\nPainting 1: ${ctx.session.book.vote1} votes\nPainting 2: ${ctx.session.book.vote2} votes`)
     });
-    ctx.reply(`The battle has ended.\nPainting 1: ${ctx.session.book.vote1} votes\nPainting 2: ${ctx.session.book.vote2} votes`)
   } 
   return
 })
