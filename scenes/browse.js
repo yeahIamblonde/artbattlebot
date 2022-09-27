@@ -63,6 +63,7 @@ browseWizard.action('Buy', async (ctx) => {
 
 browseWizard.action('Show', async (ctx) => {
   // flip the active image
+  console.log(ctx.from.username)
   ctx.wizard.state.image = (ctx.wizard.state.image === 1 ? 2 : 1)
   showBook(ctx, -1)
   return

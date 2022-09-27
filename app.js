@@ -131,6 +131,14 @@ bot.command('message', async (ctx) => {
     ctx.scene.enter('messageScene')
 })
 
+bot.action('Show', async (ctx) => {
+  // flip the active image
+  console.log(ctx.from.username)
+  console.log(ctx.from)
+  console.log(ctx.chat)
+  return
+})
+
 
 bot.startPolling();
 //setup(bot)
