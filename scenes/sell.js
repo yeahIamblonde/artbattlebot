@@ -15,9 +15,25 @@ const sellWizard = new WizardScene(
         ctx.reply('There is already an active battle. Unable to create a new Battle. Please wait until the active battle has finished.')
         ctx.scene.leave()
       } else {
-        ctx.reply('Please send me the first image for the Art Battle.')
+        ctx.reply('How many ACT would you like to use for this battle?')
         return ctx.wizard.next();
       }
+    },
+    async (ctx) => {
+      if (ctx.message.text) {
+        // check if the user has enough ACT to start this battle
+        var amount = parseFloat(ctx.message.text)
+        var user = await User.findOne({ id: ctx.from.id })
+        if (user) {
+          if (user.balance >= amount) {
+            ctx.reply('Ok, now send me the first image for the Art Battle')
+            return ctx.wizard.next(); 
+          } else
+            console.log('not enough balance', user.balance)
+        } 
+      }
+      ctx.reply('You dont have enough ACT tokens to start this battle')
+      ctx.scene.leave()
     },
     async (ctx) => {
       if (ctx.message.photo) {

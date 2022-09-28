@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 const User = require('./models/user')
 const Invoice = require('./models/invoice')
 const Book = require('./models/book')
+const Vote = require('./models/vote')
 
 const Markup = require('telegraf/markup')
 const Extra = require('telegraf/extra')
@@ -45,6 +46,11 @@ stage.register(requestWizard)
 stage.register(messageWizard)
 stage.command('cancel', leave())
 
+//globals
+var imageId = 1
+var battle
+var msg_id
+
 
 // remote connection
 //mongoose.connect('mongodb+srv://mags4sats:PQJXytYAs2XVYFKI@cluster0-pkmmz.mongodb.net/test4sats?authSource=admin&replicaSet=Cluster0-shard-0&w=majority&readPreference=primary&appname=MongoDB%20Compass&retryWrites=true&ssl=true',{useNewUrlParser: true}, function (err) {
@@ -58,29 +64,6 @@ mongoose.connect('mongodb://localhost:27017/energyweb?readPreference=primary&app
 });
 mongoose.set('useFindAndModify', false);
 
-const stream = charge.stream()
-stream.on('payment', inv => {
-  // payment received
-  console.log(`invoice ${ inv.id } of ${ inv.msatoshi } paid`)
-
-  Invoice.findOne({id: inv.id}, async function(err, invoice){
-    if (err) return
-    if (invoice) {
-        // notify seller of payment
-        bot.telegram.sendMessage(invoice.owner,`Payment Received.\nYou received a payment of:${(invoice.msatoshi / 1000).toFixed(2)} sats for ${invoice.description}`,{parse_mode:'HTML'})
-        // notify buyer and send book
-        bot.telegram.sendMessage(invoice.userid,`Payment Received.\nHere is your book:`,{parse_mode:'HTML'})
-        bot.telegram.sendDocument(invoice.userid, invoice.file_id).catch(function(error){ console.log(error); })
-        // update the earnings of the book
-        console.log(`Book: ${invoice.book_id}`)
-        Book.findByIdAndUpdate(invoice.book_id,{ $inc: {"earned": inv.msatoshi}}, function(err, result){
-          if(err)
-              console.log(err)
-        })
-    } else console.log('Invoice not found')
-  })
-})
-
 bot.start(async(ctx) => {
   // check if user exists if not enter user into database
   if (!await User.findOne({ id: ctx.from.id })) {
@@ -91,8 +74,12 @@ bot.start(async(ctx) => {
 
   await ctx.setMyCommands([
     {
-      command: '/browse',
-      description: 'Browse the active Art Battles'
+      command: '/balance',
+      description: 'Check your current balance'
+    },
+    {
+      command: '/battle',
+      description: 'Start the Art Battle'
     },
     {
       command: '/create',
@@ -100,7 +87,7 @@ bot.start(async(ctx) => {
     }
   ])
   try {
-    ctx.reply('Welcome, this bot allows you to particpate in Artbattles by voting for one of the paintings in the battle.\n\nIf you vote for the winning painting you will receive 1 ArtCod3 token.\n\nCheck out the current battle /browse')
+    ctx.reply('Welcome, this bot allows you to particpate in Art Battles by voting for one of the paintings in the battle.\n\nIf you vote for the winning painting you will receive 1 ACT.\n\nCheck out the current /battle')
   } catch (error) {
       console.log('error in sendmessage')
   }
@@ -112,10 +99,23 @@ bot.help(async (ctx) => {
   return ctx.reply(info)
 })
 
-bot.command('browse', async (ctx) => {
-  console.log(`${ctx.from.username}: /browse`)
-  ctx.session.searchTitle = ''
-  ctx.scene.enter('browseScene')
+bot.command('battle', async (ctx) => {
+  console.log(`${ctx.from.username}: /battle`)
+  //ctx.session.searchTitle = ''
+
+  //ctx.scene.enter('browseScene')
+  battle = await Book.findOne({votesAvailable: { $gt: 0 }}).exec()
+  if (battle) { 
+      // keep the active image number 
+      imageId = 1
+      const kbItems = []
+      kbItems.push([Markup.callbackButton('Show Painting 2', 'Show')])
+      kbItems.push([Markup.callbackButton('Vote for this painting', 'Vote')])
+      const extra = Extra.markup(Markup.inlineKeyboard(kbItems))
+      msg_id = await ctx.replyWithPhoto(battle.cover_img, extra)   
+  } else {
+    ctx.reply('No Battles available')
+  }
 })
 
 bot.command('create', async (ctx) => {
@@ -123,6 +123,13 @@ bot.command('create', async (ctx) => {
   ctx.scene.enter('sellScene')
 })
 
+bot.command('balance', async (ctx) => {
+  console.log(`${ctx.from.username}: /balance`)
+  // get the user balance from database
+  var user = await User.findOne({ id: ctx.from.id })
+  if (user)
+    ctx.reply(`Your Balance:\n${user.balance} ACT`)
+})
 
 bot.command('message', async (ctx) => {
   console.log(`${ctx.from.username}: /message`)
@@ -132,13 +139,68 @@ bot.command('message', async (ctx) => {
 })
 
 bot.action('Show', async (ctx) => {
+  var kbItems = []
+  kbItems.push([Markup.callbackButton('Show Painting ' + imageId, 'Show')])
+  kbItems.push([Markup.callbackButton('Vote for this painting', 'Vote')])
+  const extra = Extra.markup(Markup.inlineKeyboard(kbItems))
   // flip the active image
-  console.log(ctx.from.username)
+  imageId = (imageId === 1 ? 2 : 1)
+  var image = (imageId ==1 ? battle.cover_img : battle.cover_img2)
+  ctx.telegram.editMessageMedia(
+    msg_id.chat.id,
+    msg_id.message_id,0,
+    {type: 'photo', 
+    media: image}, extra) 
+  console.log(imageId)
+  console.log(ctx.from.first_name)
   console.log(ctx.from)
   console.log(ctx.chat)
   return
 })
 
+bot.action('Test', async (ctx) => {
+  // flip the active image
+console.log(ctx.session.book)
+  return
+})
+
+bot.action('Vote', async (ctx) => {
+  // @vote
+  // check if not already voted
+  var vote = await Vote.findOne({battleid: battle._id, userid: ctx.from.id}).exec()
+  if (vote)  
+    return
+
+  var newVote = new Vote({
+    battleid: battle._id,
+    userid: ctx.from.id, 
+    vote: imageId
+  })
+  newVote.save()
+  //update the votes in the battle table
+  if (imageId == 1)
+    battle.vote1++
+  else
+    battle.vote2++
+  
+  battle.votesAvailable = battle.votesAvailable - 1
+  battle.save()
+  var voteTxt = (battle.votesAvailable == 1 ? "vote" : "votes")
+  await ctx.reply(`${ctx.from.first_name} just voted. ${battle.votesAvailable} ${voteTxt} remaining`)
+  if (battle.votesAvailable <= 0) {
+    // no more votes available, send result of the battle to all users
+    await ctx.reply(`The battle has ended.\nPainting 1: ${battle.vote1} votes\nPainting 2: ${battle.vote2} votes`)
+  
+    // check the winning painting
+    var winVoteId = (battle.vote1 > battle.vote2 ? 1 : 2) 
+    const cursor = Vote.find({battleid: battle._id, vote: winVoteId}).cursor();
+    await cursor.eachAsync(async function(doc) {
+      ctx.telegram.sendMessage(doc.userid,`Congratulations, you voted for the winning painting.\n\n1 ACT has been added to your /balance.`)
+      // increate the users balance
+      await User.findOneAndUpdate({id: doc.userid},{ $inc: {balance: 1}})
+    })
+  }  
+})
 
 bot.startPolling();
 //setup(bot)
