@@ -26,6 +26,7 @@ const sellWizard = new WizardScene(
         var user = await User.findOne({ id: ctx.from.id })
         if (user) {
           if (user.balance >= amount) {
+            ctx.wizard.state.votes = amount
             ctx.reply('Ok, now send me the first image for the Art Battle')
             return ctx.wizard.next(); 
           } else
@@ -53,7 +54,7 @@ const sellWizard = new WizardScene(
           cover_img: ctx.wizard.state.cover_img1,
           cover_img2: ctx.message.photo[0].file_id,
           owner: ctx.from.id,
-          votesAvailable:2
+          votesAvailable:ctx.wizard.state.votes
         })
         newBook.save()
         console.log("Battle added: ")
